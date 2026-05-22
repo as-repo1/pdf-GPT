@@ -1,0 +1,83 @@
+# pdf-GPT — Docker Compose
+# ─────────────────────────────────────────────────────────────────────────────
+# Quick start:
+#   docker compose up                        # pdf-GPT only (use external Ollama / cloud APIs)
+#   docker compose --profile ollama up       # pdf-GPT + bundled Ollama
+#
+# Then open: http://localhost:8501
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── pdf-GPT app ─────────────────────────────────────────────────────────────
+  pdf-gpt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: pdf-gpt:latest
+    container_name: pdf-gpt
+    ports:
+      - "8501:8501"
+    volumes:
+      # Persist settings (API keys, model choices) across container restarts
+      - pdf-gpt-config:/root
+    environment:
+      # Optional: pre-seed keys via env vars (overridden by in-app settings)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      # Point Ollama to the bundled service when using --profile ollama
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+    depends_on:
+      ollama:
+        condition: service_healthy
+        required: false          # app starts even without Ollama profile
+    networks:
+      - pdf-gpt-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  # ── Ollama (local LLM) — opt-in via --profile ollama ────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - pdf-gpt-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+    # Uncomment to enable GPU support (requires nvidia-container-toolkit)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+# ── Named volumes ──────────────────────────────────────────────────────────────
+volumes:
+  pdf-gpt-config:
+    driver: local
+  ollama-models:
+    driver: local
+
+# ── Network ───────────────────────────────────────────────────────────────────
+networks:
+  pdf-gpt-net:
+    driver: bridge

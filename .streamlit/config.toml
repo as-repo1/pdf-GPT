@@ -1,0 +1,9 @@
+[browser]
+gatherUsageStats = false
+
+[server]
+# Prevents Streamlit from crawling all imported modules (transformers etc.)
+# which causes torchvision/ModuleNotFoundError spam in logs.
+fileWatcherType = "none"
+headless = true
+port = 8501

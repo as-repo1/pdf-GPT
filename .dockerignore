@@ -1,0 +1,48 @@
+# Git / VCS
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# Streamlit local state
+.streamlit/
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test / CI artefacts
+.pytest_cache/
+htmlcov/
+.coverage
+*.log
+
+# Screenshots / assets (not needed in image)
+ss/
+image.png
+
+# Docker itself
+Dockerfile
+docker-compose.yml
+.dockerignore

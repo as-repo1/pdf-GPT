@@ -1,7 +1,18 @@
-# Byte-compiled / optimized / DLL files
+# ==========================================
+# pdf-GPT — Project-specific ignores
+# ==========================================
+
+# NEVER commit real API keys or personal config
+.env
+~/.pdf-gpt-config.json
+
+# Streamlit local state and cache
+.streamlit/secrets.toml
+
+# Python cache
 __pycache__/
 *.py[cod]
-*$py.class
+
 
 # C extensions
 *.so
