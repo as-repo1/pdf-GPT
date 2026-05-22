@@ -21,7 +21,7 @@
 
 <br/>
 
-> **Drop a PDF. Pick a model. Ask anything.**  
+> **Drop a PDF. Pick a model. Ask anything.**
 > Powered by RAG — your documents, your AI, your rules.
 
 <br/>
@@ -48,65 +48,6 @@ Everything is configurable from the **in-app Settings panel** — no `.env` file
 <tr>
 <td>
 
-**🔌 Multi-Provider Support**
-- OpenAI GPT-4o, GPT-4-turbo, and more
-- Google Gemini 2.0 Flash / 1.5 Pro
-- Local Ollama (llama3, mistral, phi3…)
-- Any OpenAI-compatible API endpoint
-
-</td>
-<td>
-
-**⚙️ Fully Configurable UI**
-- In-app Settings panel — no file editing
-- API keys, base URLs, model names
-- Persistent across restarts
-- Reset to defaults anytime
-
-</td>
-</tr>
-<tr>
-<td>
-
-**🖥️ Offline-First Embeddings**
-- Local sentence-transformers by default
-- No API key needed for embeddings
-- 5 embedding model options
-- Optional OpenAI embeddings
-
-</td>
-<td>
-
-**🐳 Docker Ready**
-- Multi-stage optimised image
-- `docker compose up` — that's it
-- Optional bundled Ollama service
-- Named volumes for persistence
-
-</td>
-</tr>
-<tr>
-<td>
-
-**📚 Smart Document Handling**
-- Multiple PDFs simultaneously
-- Page-labelled context extraction
-- Configurable chunk size & overlap
-- FAISS vector store for fast retrieval
-
-</td>
-<td>
-
-**⚡ Modern Experience**
-- Streamed responses (all providers)
-- Dark glassmorphism UI
-- Smooth animations & micro-interactions
-- Live Ollama model list from API
-
-</td>
-</tr>
-</table>
-
 <br/>
 
 ---
@@ -114,6 +55,7 @@ Everything is configurable from the **in-app Settings panel** — no `.env` file
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Python 3.11+
 - An API key **OR** [Ollama](https://ollama.com) installed locally
 
@@ -195,11 +137,11 @@ Requires [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-nat
 
 ### 🟢 OpenAI
 
-| Setting | Value |
-|---|---|
-| API Key | `sk-...` from [platform.openai.com](https://platform.openai.com/api-keys) |
-| Base URL | `https://api.openai.com/v1` (default) |
-| Models | `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`, `gpt-3.5-turbo` |
+| Setting  | Value                                                                        |
+| -------- | ---------------------------------------------------------------------------- |
+| API Key  | `sk-...` from -> [platform.openai.com](https://platform.openai.com/api-keys) |
+| Base URL | `https://api.openai.com/v1` (default)                                      |
+| Models   | `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`, `gpt-3.5-turbo`              |
 
 The **Base URL** field makes pdf-GPT compatible with **any OpenAI-compatible endpoint**:
 
@@ -215,10 +157,10 @@ Ollama       →  http://localhost:11434/v1
 
 ### 🔵 Google Gemini
 
-| Setting | Value |
-|---|---|
-| API Key | Free key from [aistudio.google.com](https://aistudio.google.com) |
-| Models | `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-1.0-pro` |
+| Setting | Value                                                                              |
+| ------- | ---------------------------------------------------------------------------------- |
+| API Key | Free key from -> [aistudio.google.com](https://aistudio.google.com)                  |
+| Models  | `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-1.0-pro` |
 
 `gemini-2.0-flash` is recommended — fastest with a generous free tier.
 
@@ -251,21 +193,21 @@ Embeddings convert your PDF text into vectors for semantic search. pdf-GPT uses 
 
 ### Local Models (offline)
 
-| Model | Speed | Quality | Dimensions | Best For |
-|---|---|---|---|---|
-| `all-MiniLM-L6-v2` | ⚡⚡⚡ | ★★★☆ | 384 | General use (default) |
-| `all-MiniLM-L12-v2` | ⚡⚡ | ★★★★ | 384 | Balanced |
-| `all-mpnet-base-v2` | ⚡ | ★★★★★ | 768 | Best accuracy |
-| `paraphrase-multilingual-MiniLM-L12-v2` | ⚡⚡ | ★★★☆ | 384 | Non-English PDFs |
-| `multi-qa-MiniLM-L6-cos-v1` | ⚡⚡⚡ | ★★★★ | 384 | Q&A tasks |
+| Model                                     | Speed  | Quality    | Dimensions | Best For              |
+| ----------------------------------------- | ------ | ---------- | ---------- | --------------------- |
+| `all-MiniLM-L6-v2`                      | ⚡⚡⚡ | ★★★☆   | 384        | General use (default) |
+| `all-MiniLM-L12-v2`                     | ⚡⚡   | ★★★★   | 384        | Balanced              |
+| `all-mpnet-base-v2`                     | ⚡     | ★★★★★ | 768        | Best accuracy         |
+| `paraphrase-multilingual-MiniLM-L12-v2` | ⚡⚡   | ★★★☆   | 384        | Non-English PDFs      |
+| `multi-qa-MiniLM-L6-cos-v1`             | ⚡⚡⚡ | ★★★★   | 384        | Q&A tasks             |
 
 ### OpenAI Embeddings (cloud)
 
-| Model | Dimensions | Cost |
-|---|---|---|
-| `text-embedding-3-small` | 1536 | Low |
-| `text-embedding-3-large` | 3072 | Medium |
-| `text-embedding-ada-002` | 1536 | Low (legacy) |
+| Model                      | Dimensions | Cost         |
+| -------------------------- | ---------- | ------------ |
+| `text-embedding-3-small` | 1536       | Low          |
+| `text-embedding-3-large` | 3072       | Medium       |
+| `text-embedding-ada-002` | 1536       | Low (legacy) |
 
 > **Note:** Changing the embedding model or chunk settings takes effect on the **next PDF upload** — the existing vector store is not rebuilt automatically.
 
@@ -277,17 +219,17 @@ Embeddings convert your PDF text into vectors for semantic search. pdf-GPT uses 
 
 All settings live in the **⚙️ Settings** panel inside the app and are saved to `~/.pdf-gpt-config.json`.
 
-| Setting | Default | Description |
-|---|---|---|
-| Active Provider | `openai` | LLM backend to use |
-| API Key | _(empty)_ | Provider-specific key |
-| Base URL | `https://api.openai.com/v1` | OpenAI endpoint (change for proxies) |
-| Model | `gpt-4o` | Chat model name |
-| Embedding Engine | `local` | `local` (offline) or `openai` |
-| Local Embed Model | `all-MiniLM-L6-v2` | Which sentence-transformer to use |
-| Chunk Size | `1000` | Characters per document chunk |
-| Chunk Overlap | `200` | Overlap between adjacent chunks |
-| Top-K Results | `4` | Chunks retrieved per query |
+| Setting           | Default                       | Description                          |
+| ----------------- | ----------------------------- | ------------------------------------ |
+| Active Provider   | `openai`                    | LLM backend to use                   |
+| API Key           | _(empty)_                   | Provider-specific key                |
+| Base URL          | `https://api.openai.com/v1` | OpenAI endpoint (change for proxies) |
+| Model             | `gpt-4o`                    | Chat model name                      |
+| Embedding Engine  | `local`                     | `local` (offline) or `openai`    |
+| Local Embed Model | `all-MiniLM-L6-v2`          | Which sentence-transformer to use    |
+| Chunk Size        | `1000`                      | Characters per document chunk        |
+| Chunk Overlap     | `200`                       | Overlap between adjacent chunks      |
+| Top-K Results     | `4`                         | Chunks retrieved per query           |
 
 <br/>
 
@@ -327,18 +269,18 @@ pdf-GPT/
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|---|---|
-| **UI Framework** | [Streamlit](https://streamlit.io) |
-| **LLM — OpenAI** | [openai-python](https://github.com/openai/openai-python) |
-| **LLM — Gemini** | [google-genai](https://github.com/googleapis/python-genai) |
-| **LLM — Ollama** | REST API via `requests` |
-| **Embeddings (local)** | [sentence-transformers](https://www.sbert.net) |
-| **Embeddings (cloud)** | [langchain-openai](https://github.com/langchain-ai/langchain) |
-| **Vector Store** | [FAISS](https://github.com/facebookresearch/faiss) via LangChain |
-| **PDF Parsing** | [pypdf](https://github.com/py-pdf/pypdf) |
-| **Text Splitting** | [langchain-text-splitters](https://github.com/langchain-ai/langchain) |
-| **Containerisation** | Docker + Docker Compose |
+| Layer                        | Technology                                                         |
+| ---------------------------- | ------------------------------------------------------------------ |
+| **UI Framework**       | [Streamlit](https://streamlit.io)                                     |
+| **LLM — OpenAI**      | [openai-python](https://github.com/openai/openai-python)              |
+| **LLM — Gemini**      | [google-genai](https://github.com/googleapis/python-genai)            |
+| **LLM — Ollama**      | REST API via `requests`                                          |
+| **Embeddings (local)** | [sentence-transformers](https://www.sbert.net)                        |
+| **Embeddings (cloud)** | [langchain-openai](https://github.com/langchain-ai/langchain)         |
+| **Vector Store**       | [FAISS](https://github.com/facebookresearch/faiss) via LangChain      |
+| **PDF Parsing**        | [pypdf](https://github.com/py-pdf/pypdf)                              |
+| **Text Splitting**     | [langchain-text-splitters](https://github.com/langchain-ai/langchain) |
+| **Containerisation**   | Docker + Docker Compose                                            |
 
 <br/>
 
@@ -385,7 +327,7 @@ Distributed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**Built with ❤️ using Streamlit · LangChain · sentence-transformers · FAISS**
+**Built using Streamlit · LangChain · sentence-transformers · FAISS**
 
 ⭐ **Star this repo if it helped you!** ⭐
 
