@@ -4,7 +4,9 @@
 
 # NEVER commit real API keys or personal config
 .env
-~/.pdf-gpt-config.json
+# Config is stored at ~/.pdf-gpt-config.json (outside repo, inherently untracked).
+# Catch it just in case someone copies it into the repo:
+.pdf-gpt-config.json
 
 # Streamlit local state and cache
 .streamlit/secrets.toml

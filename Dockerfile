@@ -19,7 +19,7 @@ FROM python:3.11-slim AS runtime
 
 LABEL org.opencontainers.image.title="pdf-GPT" \
       org.opencontainers.image.description="AI-powered PDF chat — OpenAI · Gemini · Ollama" \
-      org.opencontainers.image.source="https://github.com/your-username/pdf-GPT"
+      org.opencontainers.image.source="https://github.com/as-repo1/pdf-GPT"
 
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local

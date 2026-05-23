@@ -47,7 +47,7 @@ def load_config() -> Dict[str, Any]:
     """Load config from disk, deep-merging with defaults for any missing keys."""
     if CONFIG_FILE.exists():
         try:
-            with open(CONFIG_FILE, "r") as f:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 saved = json.load(f)
             config = _deep_copy_defaults()
             for key, val in saved.items():
@@ -60,7 +60,7 @@ def load_config() -> Dict[str, Any]:
                 else:
                     config[key] = val
             return config
-        except Exception:
+        except (OSError, json.JSONDecodeError):
             pass
     return _deep_copy_defaults()
 
@@ -68,5 +68,5 @@ def load_config() -> Dict[str, Any]:
 def save_config(config: Dict[str, Any]) -> None:
     """Persist config to ~/.pdf-gpt-config.json."""
     CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(CONFIG_FILE, "w") as f:
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)

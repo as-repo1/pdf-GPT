@@ -27,7 +27,7 @@ class SentenceTransformerEmbeddings(_LangchainBase):
     """
 
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
-        from sentence_transformers import SentenceTransformer
+        from sentence_transformers import SentenceTransformer  # pylint: disable=import-outside-toplevel
         self._model = SentenceTransformer(model_name)
         self._model_name = model_name
 
@@ -76,7 +76,7 @@ def get_embeddings(
     provider='openai' → OpenAI embeddings (requires key)
     """
     if provider == "openai" and openai_api_key.strip():
-        from langchain_openai import OpenAIEmbeddings
+        from langchain_openai import OpenAIEmbeddings  # pylint: disable=import-outside-toplevel
         return OpenAIEmbeddings(
             api_key=openai_api_key,
             base_url=openai_base_url or None,
@@ -87,5 +87,5 @@ def get_embeddings(
 
 def create_vector_store(chunks: List[str], embeddings):
     """Build a FAISS in-memory vector store from text chunks."""
-    from langchain_community.vectorstores import FAISS
+    from langchain_community.vectorstores import FAISS  # pylint: disable=import-outside-toplevel
     return FAISS.from_texts(chunks, embeddings)

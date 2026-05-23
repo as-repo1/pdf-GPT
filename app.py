@@ -13,18 +13,22 @@ st.set_page_config(
 )
 
 # ── CSS ─────────────────────────────────────────────────────────────────────────
-from pathlib import Path
+from pathlib import Path  # noqa: E402
+
 _CSS = Path(__file__).parent / "ui" / "styles.css"
 if _CSS.exists():
-    st.markdown(f"<style>{_CSS.read_text()}</style>", unsafe_allow_html=True)
+    st.markdown(f"<style>{_CSS.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
 # ── Imports ──────────────────────────────────────────────────────────────────────
-import requests
+import requests  # noqa: E402
 
-from config import DEFAULT_CONFIG, load_config, save_config
-from core.chat_engine import get_context
-from core.embeddings import create_vector_store, get_embeddings
-from core.pdf_processor import extract_text_from_pdfs, split_text
+from config import DEFAULT_CONFIG, load_config, save_config  # noqa: E402
+from core.chat_engine import get_context  # noqa: E402
+from core.embeddings import create_vector_store, get_embeddings  # noqa: E402
+from core.pdf_processor import extract_text_from_pdfs, split_text  # noqa: E402
+from providers.gemini_provider import GeminiProvider  # noqa: E402
+from providers.ollama_provider import OllamaProvider  # noqa: E402
+from providers.openai_provider import OpenAIProvider  # noqa: E402
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -57,11 +61,11 @@ OPENAI_EMBED_MODELS = [
 
 # name → (display label, description)
 LOCAL_EMBED_MODELS = {
-    "all-MiniLM-L6-v2":                      ("MiniLM-L6",       "⚡ Fast · English · 384d  (default)"),
-    "all-MiniLM-L12-v2":                     ("MiniLM-L12",      "⚖️  Balanced · English · 384d"),
-    "all-mpnet-base-v2":                     ("MPNet-base",      "🎯 Best quality · English · 768d"),
-    "paraphrase-multilingual-MiniLM-L12-v2": ("Multilingual-L12","🌍 Multilingual · 384d"),
-    "multi-qa-MiniLM-L6-cos-v1":            ("QA-MiniLM",       "🔍 Optimised for Q&A · 384d"),
+    "all-MiniLM-L6-v2": ("MiniLM-L6", "⚡ Fast · English · 384d  (default)"),
+    "all-MiniLM-L12-v2": ("MiniLM-L12", "⚖️  Balanced · English · 384d"),
+    "all-mpnet-base-v2": ("MPNet-base", "🎯 Best quality · English · 768d"),
+    "paraphrase-multilingual-MiniLM-L12-v2": ("Multilingual-L12", "🌍 Multilingual · 384d"),
+    "multi-qa-MiniLM-L6-cos-v1": ("QA-MiniLM", "🔍 Optimised for Q&A · 384d"),
 }
 
 OLLAMA_SUGGESTED = [
@@ -88,7 +92,7 @@ def _fetch_ollama_models(base_url: str):
         return models, None
     except requests.exceptions.ConnectionError:
         return [], "no_connection"
-    except Exception as exc:
+    except requests.exceptions.RequestException as exc:
         return [], str(exc)
 
 
@@ -98,20 +102,20 @@ def _fetch_openai_models(api_key: str, base_url: str):
     if not api_key.strip():
         return []
     try:
-        from openai import OpenAI
+        from openai import OpenAI  # pylint: disable=import-outside-toplevel
         client = OpenAI(api_key=api_key, base_url=base_url or None)
         data = client.models.list().data
         return sorted(m.id for m in data)
-    except Exception:
+    except (requests.exceptions.RequestException, RuntimeError, OSError):
         return []
 
 
 def _init():
     defaults = {
-        "config":       load_config(),
-        "messages":     [],
+        "config": load_config(),
+        "messages": [],
         "vector_store": None,
-        "pdf_names":    [],
+        "pdf_names": [],
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -122,32 +126,41 @@ _init()
 cfg = st.session_state.config
 
 
+_PROVIDER_BUILDERS = {
+    "openai": lambda c: (
+        (None, "OpenAI API key is not set — open ⚙️ Settings.")
+        if not c["openai"]["api_key"].strip()
+        else (
+            OpenAIProvider(
+                c["openai"]["api_key"],
+                c["openai"]["base_url"],
+                c["openai"]["model"],
+            ),
+            None,
+        )
+    ),
+    "gemini": lambda c: (
+        (None, "Gemini API key is not set — open ⚙️ Settings.")
+        if not c["gemini"]["api_key"].strip()
+        else (GeminiProvider(c["gemini"]["api_key"], c["gemini"]["model"]), None)
+    ),
+    "ollama": lambda c: (
+        OllamaProvider(c["ollama"]["base_url"], c["ollama"]["model"]),
+        None,
+    ),
+}
+
+
 def build_provider(config: dict):
     """Instantiate the active LLM provider. Returns (provider, error_str)."""
-    p = config["active_provider"]
+    provider_name = config["active_provider"]
+    builder = _PROVIDER_BUILDERS.get(provider_name)
+    if builder is None:
+        return None, f"Unknown provider: {provider_name}"
     try:
-        if p == "openai":
-            from providers.openai_provider import OpenAIProvider
-            c = config["openai"]
-            if not c["api_key"].strip():
-                return None, "OpenAI API key is not set — open ⚙️ Settings."
-            return OpenAIProvider(c["api_key"], c["base_url"], c["model"]), None
-
-        elif p == "gemini":
-            from providers.gemini_provider import GeminiProvider
-            c = config["gemini"]
-            if not c["api_key"].strip():
-                return None, "Gemini API key is not set — open ⚙️ Settings."
-            return GeminiProvider(c["api_key"], c["model"]), None
-
-        elif p == "ollama":
-            from providers.ollama_provider import OllamaProvider
-            c = config["ollama"]
-            return OllamaProvider(c["base_url"], c["model"]), None
-
-    except Exception as e:
-        return None, str(e)
-    return None, "Unknown provider."
+        return builder(config)
+    except (ConnectionError, RuntimeError, OSError, ValueError) as exc:
+        return None, str(exc)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -172,7 +185,7 @@ with st.sidebar:
         "gemini": ("#3b82f6", "Gemini"),
         "ollama": ("#f59e0b", "Ollama"),
     }
-    _p   = cfg["active_provider"]
+    _p = cfg["active_provider"]
     _col, _lbl = _PM.get(_p, ("#888", _p.title()))
     _mdl = cfg[_p].get("model", "—")
 
@@ -201,20 +214,25 @@ with st.sidebar:
         if current_names != sorted(st.session_state.pdf_names):
             with st.spinner("Processing documents…"):
                 try:
-                    text   = extract_text_from_pdfs(uploaded)
-                    chunks = split_text(text, cfg["chunk_size"], cfg["chunk_overlap"])
-                    emb    = get_embeddings(
-                        provider              = cfg["embedding_provider"],
-                        openai_api_key        = cfg["openai"]["api_key"],
-                        openai_base_url       = cfg["openai"]["base_url"],
-                        local_model           = cfg.get("local_embedding_model", "all-MiniLM-L6-v2"),
-                        openai_embedding_model= cfg.get("openai_embedding_model", "text-embedding-3-small"),
+                    raw_text = extract_text_from_pdfs(uploaded)
+                    chunks = split_text(raw_text, cfg["chunk_size"], cfg["chunk_overlap"])
+                    emb = get_embeddings(
+                        provider=cfg["embedding_provider"],
+                        openai_api_key=cfg["openai"]["api_key"],
+                        openai_base_url=cfg["openai"]["base_url"],
+                        local_model=cfg.get("local_embedding_model", "all-MiniLM-L6-v2"),
+                        openai_embedding_model=cfg.get(
+                            "openai_embedding_model", "text-embedding-3-small"
+                        ),
                     )
                     st.session_state.vector_store = create_vector_store(chunks, emb)
-                    st.session_state.pdf_names    = [f.name for f in uploaded]
-                    st.session_state.messages     = []
-                    st.toast(f"✓ {len(uploaded)} file(s) · {len(chunks)} chunks indexed", icon="📄")
-                except Exception as exc:
+                    st.session_state.pdf_names = [f.name for f in uploaded]
+                    st.session_state.messages = []
+                    st.toast(
+                        f"✓ {len(uploaded)} file(s) · {len(chunks)} chunks indexed",
+                        icon="📄",
+                    )
+                except (OSError, RuntimeError, ValueError) as exc:
                     st.error(f"Processing failed: {exc}")
 
     if st.session_state.pdf_names:
@@ -277,10 +295,14 @@ with st.sidebar:
             if cur_oai and cur_oai not in oai_models:
                 oai_models = [cur_oai] + oai_models
 
+            oai_model_idx = (
+                oai_models.index(cfg["openai"]["model"])
+                if cfg["openai"]["model"] in oai_models
+                else 0
+            )
             cfg["openai"]["model"] = st.selectbox(
                 "oai_model", oai_models,
-                index=oai_models.index(cfg["openai"]["model"])
-                      if cfg["openai"]["model"] in oai_models else 0,
+                index=oai_model_idx,
                 label_visibility="collapsed", key="sel_oai_model",
             )
             if not fetched_oai:
@@ -365,13 +387,21 @@ with st.sidebar:
 
             else:
                 cur_oll = cfg["ollama"]["model"]
-                oll_list = avail_models if cur_oll in avail_models \
-                           else ([cur_oll] + avail_models if cur_oll else avail_models)
+                if cur_oll in avail_models:
+                    oll_list = avail_models
+                elif cur_oll:
+                    oll_list = [cur_oll] + avail_models
+                else:
+                    oll_list = avail_models
+                oll_idx = (
+                    oll_list.index(cfg["ollama"]["model"])
+                    if cfg["ollama"]["model"] in oll_list
+                    else 0
+                )
                 with col_mdl:
                     cfg["ollama"]["model"] = st.selectbox(
                         "ollama_model_sel", oll_list,
-                        index=oll_list.index(cfg["ollama"]["model"])
-                              if cfg["ollama"]["model"] in oll_list else 0,
+                        index=oll_idx,
                         label_visibility="collapsed", key="sel_ollama_model",
                     )
                 st.caption(f"✅ {len(avail_models)} model(s) available")
@@ -386,8 +416,11 @@ with st.sidebar:
             "embed_prov",
             ["local", "openai"],
             index=0 if cfg["embedding_provider"] == "local" else 1,
-            format_func=lambda x: "🖥️  Local — sentence-transformers"
-                                   if x == "local" else "☁️  OpenAI embeddings",
+            format_func=lambda x: (
+                "🖥️  Local — sentence-transformers"
+                if x == "local"
+                else "☁️  OpenAI embeddings"
+            ),
             label_visibility="collapsed", key="sel_embed",
             help="'Local' works fully offline with no API key.",
         )
@@ -401,8 +434,10 @@ with st.sidebar:
             cfg["local_embedding_model"] = st.selectbox(
                 "local_embed_model", local_keys,
                 index=local_keys.index(cur_local),
-                format_func=lambda k: f"{LOCAL_EMBED_MODELS.get(k, (k,''))[0]}  —  "
-                                      f"{LOCAL_EMBED_MODELS.get(k, ('',k))[1]}",
+                format_func=lambda k: (
+                    f"{LOCAL_EMBED_MODELS.get(k, (k, ''))[0]}  —  "
+                    f"{LOCAL_EMBED_MODELS.get(k, ('', k))[1]}"
+                ),
                 label_visibility="collapsed", key="sel_local_embed",
                 help="First use downloads the model. Change takes effect on next upload.",
             )
@@ -410,8 +445,10 @@ with st.sidebar:
         else:  # openai embeddings
             st.markdown("**Embedding Model**")
             cur_oai_emb = cfg.get("openai_embedding_model", "text-embedding-3-small")
-            oai_emb_list = OPENAI_EMBED_MODELS if cur_oai_emb in OPENAI_EMBED_MODELS \
-                           else [cur_oai_emb] + OPENAI_EMBED_MODELS
+            if cur_oai_emb in OPENAI_EMBED_MODELS:
+                oai_emb_list = OPENAI_EMBED_MODELS
+            else:
+                oai_emb_list = [cur_oai_emb] + OPENAI_EMBED_MODELS
             cfg["openai_embedding_model"] = st.selectbox(
                 "oai_embed_model", oai_emb_list,
                 index=oai_emb_list.index(cur_oai_emb),
@@ -523,15 +560,15 @@ else:
                 st.error(f"⚠️ {err}")
         else:
             with st.chat_message("assistant", avatar="🤖"):
-                context = get_context(
+                doc_context = get_context(
                     st.session_state.vector_store, prompt, cfg["top_k"]
                 )
                 try:
                     full: str = st.write_stream(
-                        provider.stream_chat(st.session_state.messages, context)
+                        provider.stream_chat(st.session_state.messages, doc_context)
                     )
                     st.session_state.messages.append(
                         {"role": "assistant", "content": full}
                     )
-                except Exception as exc:
+                except (ConnectionError, RuntimeError, OSError) as exc:
                     st.error(f"**Error:** {exc}")

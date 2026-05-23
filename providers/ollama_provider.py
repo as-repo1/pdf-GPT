@@ -25,7 +25,10 @@ class OllamaProvider:
         self.model = model
 
     def stream_chat(self, messages: list, context: str) -> Iterator[str]:
-        system_msg = {"role": "system", "content": _SYSTEM_TEMPLATE.format(context=context)}
+        system_msg = {
+            "role": "system",
+            "content": _SYSTEM_TEMPLATE.format(context=context),
+        }
         payload = {
             "model": self.model,
             "messages": [system_msg] + messages,
@@ -44,17 +47,20 @@ class OllamaProvider:
             for line in resp.iter_lines():
                 if not line:
                     continue
-                data = json.loads(line)
+                try:
+                    data = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
                 if data.get("done"):
                     break
                 content = data.get("message", {}).get("content", "")
                 if content:
                     yield content
 
-        except requests.exceptions.ConnectionError:
-            raise ConnectionError(
+        except requests.exceptions.ConnectionError as exc:
+            raise RuntimeError(
                 f"Cannot reach Ollama at **{self.base_url}**.\n"
                 "Make sure Ollama is running: `ollama serve`"
-            )
-        except requests.exceptions.HTTPError as e:
-            raise RuntimeError(f"Ollama API error: {e}")
+            ) from exc
+        except requests.exceptions.HTTPError as exc:
+            raise RuntimeError(f"Ollama API error: {exc}") from exc
