@@ -24,11 +24,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
     const sendBtn = document.getElementById('send-btn');
-    const clearChatBtn = document.getElementById('clear-chat-btn');
+    
+    // UI Panels
+    const emptyState = document.getElementById('empty-state');
+    const chatWrapper = document.getElementById('chat-wrapper');
+    const settingsModal = document.getElementById('settings-modal');
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+
+    // PDF Viewer
+    const pdfContainer = document.getElementById('pdf-container');
+    const pdfTitle = document.getElementById('pdf-title');
+    const pdfViewerWrapper = document.getElementById('pdf-viewer-wrapper');
+    const pageNumSpan = document.getElementById('page-num');
+    const pageCountSpan = document.getElementById('page-count');
+    const askSelectionBtn = document.getElementById('ask-selection-btn');
+    const resizer = document.getElementById('dragMe');
+    const leftPane = document.querySelector('.left-pane');
+    const rightPane = document.querySelector('.right-pane');
 
     // State
     let chatHistory = [];
     let isConfigLoaded = false;
+    let pdfDoc = null;
+    let pageNum = 1;
+    let selectedText = "";
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    // --- Modal Logic ---
+    openSettingsBtn.addEventListener('click', () => settingsModal.classList.add('show'));
+    closeModalBtn.addEventListener('click', () => settingsModal.classList.remove('show'));
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) settingsModal.classList.remove('show');
+    });
+
+    // --- Resizer Logic ---
+    let isResizing = false;
+    resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        resizer.classList.add('resizing');
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const newWidth = e.clientX - leftPane.getBoundingClientRect().left;
+        if (newWidth > 300 && newWidth < window.innerWidth - 300) {
+            leftPane.style.flex = 'none';
+            leftPane.style.width = `${newWidth}px`;
+        }
+    });
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            resizer.classList.remove('resizing');
+            document.body.style.cursor = 'default';
+        }
+    });
 
     // --- Provider Switching ---
     providerSelect.addEventListener('change', (e) => {
@@ -162,7 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 saveConfigBtn.textContent = 'Save Settings';
                 saveConfigBtn.style.backgroundColor = '';
-            }, 2000);
+                settingsModal.classList.remove('show');
+            }, 1000);
             fetchModels();
         } catch (e) {
             alert('Failed to save config');
@@ -224,6 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 uploadStatus.textContent = `Processed ${data.files} files into ${data.chunks} chunks.`;
                 uploadStatus.style.color = 'var(--success)';
                 sendBtn.disabled = false;
+                if (data.files > 0) {
+                    loadPDF('/uploads/' + files[0].name, files[0].name);
+                }
             } else {
                 throw new Error(data.detail || 'Upload failed');
             }
@@ -240,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadStatus.textContent = `Loaded: ${data.pdf_names.join(', ')}`;
             uploadStatus.style.color = 'var(--success)';
             sendBtn.disabled = false;
+            loadPDF('/uploads/' + data.pdf_names[0], data.pdf_names[0]);
         } else {
             sendBtn.disabled = true;
         }
@@ -249,6 +307,124 @@ document.addEventListener('DOMContentLoaded', () => {
         await fetch('/api/clear', { method: 'POST' });
         uploadStatus.textContent = '';
         sendBtn.disabled = true;
+        pdfContainer.style.display = 'none';
+        resizer.style.display = 'none';
+        chatWrapper.style.display = 'none';
+        emptyState.style.display = 'flex';
+        clearMemBtn.style.display = 'none';
+        pdfDoc = null;
+        chatHistory = [];
+        chatMessages.innerHTML = `
+            <div class="message system">
+                <div class="message-content">Memory cleared. Upload a PDF to start over.</div>
+            </div>
+        `;
+    });
+
+    // --- PDF Logic ---
+    let isRendering = false;
+    async function renderPage(num) {
+        if (!pdfDoc || num > pdfDoc.numPages) return;
+        
+        const pageContainer = document.createElement('div');
+        pageContainer.className = 'pdf-page-container';
+        
+        const canvas = document.createElement('canvas');
+        canvas.className = 'pdf-canvas';
+        const textLayer = document.createElement('div');
+        textLayer.className = 'textLayer';
+        
+        pageContainer.appendChild(canvas);
+        pageContainer.appendChild(textLayer);
+        pdfViewerWrapper.appendChild(pageContainer);
+        
+        const page = await pdfDoc.getPage(num);
+        const scale = 1.2;
+        const viewport = page.getViewport({ scale });
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        const renderContext = {
+            canvasContext: canvas.getContext('2d'),
+            viewport: viewport
+        };
+        
+        await page.render(renderContext).promise;
+        
+        const textContent = await page.getTextContent();
+        textLayer.style.left = canvas.offsetLeft + 'px';
+        textLayer.style.top = canvas.offsetTop + 'px';
+        textLayer.style.height = canvas.offsetHeight + 'px';
+        textLayer.style.width = canvas.offsetWidth + 'px';
+        
+        pdfjsLib.renderTextLayer({
+            textContent: textContent,
+            container: textLayer,
+            viewport: viewport,
+            textDivs: []
+        });
+
+        pageNumSpan.textContent = num;
+    }
+
+    async function loadMorePages() {
+        if (isRendering || pageNum > pdfDoc.numPages) return;
+        isRendering = true;
+        await renderPage(pageNum);
+        pageNum++;
+        isRendering = false;
+    }
+
+    pdfViewerWrapper.addEventListener('scroll', (e) => {
+        const target = e.target;
+        if (target.scrollTop + target.clientHeight >= target.scrollHeight - 500) {
+            loadMorePages();
+        }
+    });
+
+    async function loadPDF(url, title) {
+        try {
+            pdfDoc = await pdfjsLib.getDocument(url).promise;
+            pageCountSpan.textContent = pdfDoc.numPages;
+            pdfTitle.textContent = title;
+            
+            // Update UI State
+            emptyState.style.display = 'none';
+            chatWrapper.style.display = 'flex';
+            pdfContainer.style.display = 'flex';
+            resizer.style.display = 'block';
+            clearMemBtn.style.display = 'flex';
+            
+            document.getElementById('prev-page').style.display = 'none';
+            document.getElementById('next-page').style.display = 'none';
+
+            pdfViewerWrapper.innerHTML = '';
+            pageNum = 1;
+            
+            await loadMorePages();
+            if (pdfDoc.numPages > 1) {
+                await loadMorePages();
+            }
+        } catch (e) {
+            console.error('Error loading PDF', e);
+        }
+    }
+
+    document.addEventListener('selectionchange', () => {
+        const selection = window.getSelection();
+        if (selection.toString().trim().length > 0 && pdfViewerWrapper.contains(selection.anchorNode)) {
+            selectedText = selection.toString().trim();
+            askSelectionBtn.style.display = 'flex';
+        } else {
+            selectedText = "";
+            askSelectionBtn.style.display = 'none';
+        }
+    });
+
+    askSelectionBtn.addEventListener('click', () => {
+        chatInput.value = `Explain this: "${selectedText}"`;
+        chatInput.focus();
     });
 
     // --- Chat Logic ---
@@ -258,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        contentDiv.textContent = content;
+        contentDiv.innerHTML = marked.parse(content || "");
         
         msgDiv.appendChild(contentDiv);
         chatMessages.appendChild(msgDiv);
@@ -275,12 +451,17 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInput.value = '';
         sendBtn.disabled = true;
 
+        let apiPrompt = prompt;
+        if (selectedText) {
+            apiPrompt = `[Selected Context: "${selectedText}"]\n\nUser Question: ${prompt}`;
+        }
+
         const payload = {
-            prompt: prompt,
+            prompt: apiPrompt,
             messages: chatHistory
         };
 
-        chatHistory.push({ role: 'user', content: prompt });
+        chatHistory.push({ role: 'user', content: apiPrompt });
         const botContentDiv = addMessage('bot', '');
 
         try {
@@ -307,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (done) break;
                 const textChunk = decoder.decode(value, { stream: true });
                 fullResponse += textChunk;
-                botContentDiv.textContent = fullResponse;
+                botContentDiv.innerHTML = marked.parse(fullResponse);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
 
@@ -319,15 +500,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         sendBtn.disabled = false;
-    });
-
-    clearChatBtn.addEventListener('click', () => {
-        chatHistory = [];
-        chatMessages.innerHTML = `
-            <div class="message system">
-                <div class="message-content">Chat history cleared.</div>
-            </div>
-        `;
     });
 
     // Initial Load

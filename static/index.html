@@ -4,22 +4,114 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>pdf-GPT</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- PDF.js core and viewer styling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.min.css">
+    
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>pdf-GPT</h2>
-                <p>Chat with your PDFs</p>
+        
+        <!-- Left Pane: Chat & Upload -->
+        <main class="pane left-pane">
+            <header class="pane-header">
+                <div class="logo-area">
+                    <h2>pdf-GPT</h2>
+                    <span class="badge">AI</span>
+                </div>
+                <div class="header-actions">
+                    <button id="clear-mem-btn" class="icon-btn" title="Clear Memory & PDFs" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                    </button>
+                    <button id="open-settings-btn" class="icon-btn" title="Settings">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Empty State / Upload Area -->
+            <div id="empty-state" class="empty-state">
+                <div class="upload-dropzone" id="upload-area">
+                    <input type="file" id="file-input" multiple accept=".pdf" style="display: none;">
+                    <div class="upload-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </div>
+                    <h3>Upload Documents</h3>
+                    <p>Drag & drop PDFs here or <span class="highlight">browse</span></p>
+                    <div id="upload-status"></div>
+                </div>
+            </div>
+
+            <!-- Chat Area (Hidden initially) -->
+            <div id="chat-wrapper" class="chat-wrapper" style="display: none;">
+                <div class="messages" id="chat-messages">
+                    <div class="message system">
+                        <div class="message-content">PDFs loaded! How can I help you today?</div>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <form id="chat-form">
+                        <input type="text" id="chat-input" placeholder="Ask a question about your documents..." autocomplete="off">
+                        <button type="submit" id="send-btn" class="send-btn" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <div class="resizer" id="dragMe" style="display: none;"></div>
+
+        <!-- Right Pane: PDF Viewer Area -->
+        <section class="pane right-pane" id="pdf-container" style="display: none;">
+            <header class="pane-header pdf-header">
+                <h3 id="pdf-title">Document Viewer</h3>
+                <div class="pdf-controls">
+                    <button id="prev-page" class="icon-btn small-btn" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                    <span id="page-info"><span id="page-num">0</span> / <span id="page-count">0</span></span>
+                    <button id="next-page" class="icon-btn small-btn" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </div>
+            </header>
+            
+            <div id="pdf-viewer-wrapper">
+                <!-- Pages will be dynamically appended here for infinite scroll -->
             </div>
             
-            <div class="sidebar-section">
-                <h3>Settings</h3>
+            <!-- Floating Ask Button -->
+            <button id="ask-selection-btn" class="floating-btn" style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                Ask about selection
+            </button>
+        </section>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configuration</h2>
+                <button id="close-modal-btn" class="icon-btn close-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
                 <div class="form-group">
-                    <label for="provider-select">Provider</label>
+                    <label for="provider-select">AI Provider</label>
                     <select id="provider-select">
                         <option value="openai">OpenAI</option>
                         <option value="gemini">Google Gemini</option>
@@ -28,7 +120,6 @@
                     </select>
                 </div>
 
-                <!-- Provider specific fields -->
                 <div id="openai-settings" class="provider-settings active">
                     <div class="form-group">
                         <label for="openai-key">OpenAI API Key</label>
@@ -75,42 +166,14 @@
                         <select id="openrouter-model"></select>
                     </div>
                 </div>
-
+            </div>
+            
+            <div class="modal-footer">
                 <button id="save-config-btn" class="btn primary-btn">Save Settings</button>
             </div>
-
-            <div class="sidebar-section">
-                <h3>Documents</h3>
-                <div class="upload-area" id="upload-area">
-                    <input type="file" id="file-input" multiple accept=".pdf" style="display: none;">
-                    <p>Drag & Drop PDFs or <span>Click to Browse</span></p>
-                </div>
-                <div id="upload-status"></div>
-                <button id="clear-mem-btn" class="btn outline-btn">Clear Memory</button>
-            </div>
-        </aside>
-
-        <!-- Main Chat Area -->
-        <main class="chat-container">
-            <header class="chat-header">
-                <h3>Conversation</h3>
-                <button id="clear-chat-btn" class="btn outline-btn small-btn">Clear Chat</button>
-            </header>
-            
-            <div class="messages" id="chat-messages">
-                <div class="message system">
-                    <div class="message-content">Welcome to pdf-GPT! Upload a PDF to get started.</div>
-                </div>
-            </div>
-
-            <div class="input-area">
-                <form id="chat-form">
-                    <input type="text" id="chat-input" placeholder="Ask a question about your documents..." autocomplete="off">
-                    <button type="submit" id="send-btn" class="btn primary-btn" disabled>Send</button>
-                </form>
-            </div>
-        </main>
+        </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>

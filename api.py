@@ -1,4 +1,5 @@
 import os
+import shutil
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +12,9 @@ from config import load_config, save_config, DEFAULT_CONFIG
 from core.pdf_processor import extract_text_from_pdfs, split_text
 from core.embeddings import create_vector_store, get_embeddings
 from core.chat_engine import get_context
+
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Providers
 from providers.openai_provider import OpenAIProvider
@@ -89,6 +93,12 @@ async def upload_pdfs(files: List[UploadFile] = File(...)):
     pdf_names = []
     for file in files:
         content = await file.read()
+        
+        # Save to disk for frontend viewing
+        file_path = os.path.join(UPLOAD_DIR, file.filename)
+        with open(file_path, "wb") as f:
+            f.write(content)
+            
         pdf_files.append(FakeFile(file.filename, content))
         pdf_names.append(file.filename)
         
@@ -119,6 +129,16 @@ def clear_documents():
     global global_pdf_names
     global_vector_store = None
     global_pdf_names = []
+    
+    # Clear physical files
+    for filename in os.listdir(UPLOAD_DIR):
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            pass
+            
     return {"status": "success"}
 
 def _build_provider(config: dict):
@@ -166,6 +186,9 @@ async def chat(req: ChatRequest):
             yield chunk
             
     return StreamingResponse(generate(), media_type="text/plain")
+
+# Mount uploads for PDF viewer
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # Mount static files at the end so it acts as a fallback for the UI
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
