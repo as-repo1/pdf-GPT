@@ -182,8 +182,11 @@ async def chat(req: ChatRequest):
     doc_context = get_context(global_vector_store, req.prompt, cfg.get("top_k", 4))
     
     def generate():
-        for chunk in provider.stream_chat(req.messages, doc_context):
-            yield chunk
+        try:
+            for chunk in provider.stream_chat(req.messages, doc_context):
+                yield chunk
+        except Exception as e:
+            yield f"\n\n**Error during generation:** {str(e)}"
             
     return StreamingResponse(generate(), media_type="text/plain")
 
