@@ -29,30 +29,15 @@ WORKDIR /app
 # Copy application source
 COPY . .
 
-# Streamlit config — disable telemetry and set sensible defaults
-RUN mkdir -p /root/.streamlit && cat > /root/.streamlit/config.toml <<'EOF'
-[browser]
-gatherUsageStats = false
+# No streamlit config needed for vanilla FastAPI
 
-[server]
-headless = true
-port = 8501
-address = "0.0.0.0"
-enableCORS = false
-enableXsrfProtection = false
-# Stops Streamlit scanning all imported modules (prevents transformers noise)
-fileWatcherType = "none"
-
-[theme]
-base = "dark"
-EOF
 
 # Config persistence: mount ~/.pdf-gpt-config.json here
 VOLUME ["/root"]
 
-EXPOSE 8501
+EXPOSE 1212
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')" || exit 1
+    CMD curl -f http://localhost:1212/api/config || exit 1
 
-ENTRYPOINT ["streamlit", "run", "app.py"]
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "1212"]

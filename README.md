@@ -68,10 +68,9 @@ cd pdf-GPT
 pip install -r requirements.txt
 
 # 3 · Launch
-streamlit run app.py
-```
+uvicorn api:app --reload --port 1212
 
-Open **`http://localhost:8501`** → click **⚙️ Settings** → add your API key → upload a PDF → start asking.
+Open **`http://localhost:1212`** → click **⚙️ Settings** → add your API key → upload a PDF → start asking.
 
 <br/>
 

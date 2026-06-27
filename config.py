@@ -25,6 +25,11 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "base_url": "http://localhost:11434",
         "model": "llama3",
     },
+    "openrouter": {
+        "api_key": "",
+        "base_url": "https://openrouter.ai/api/v1",
+        "model": "google/gemini-2.5-flash",
+    },
     # Embedding settings
     "embedding_provider": "local",          # "local" or "openai"
     "local_embedding_model": "all-MiniLM-L6-v2",

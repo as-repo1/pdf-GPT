@@ -9,7 +9,6 @@ Also implements __call__ for older FAISS compat as a safety net.
 
 from typing import List
 
-import streamlit as st
 
 try:
     from langchain_core.embeddings import Embeddings as _LangchainBase
@@ -56,7 +55,9 @@ class SentenceTransformerEmbeddings(_LangchainBase):
         return self.embed_query(text)
 
 
-@st.cache_resource(show_spinner=False)
+import functools
+
+@functools.lru_cache(maxsize=1)
 def _local_embeddings(model_name: str) -> SentenceTransformerEmbeddings:
     """Load and cache the sentence-transformer model (once per model name)."""
     return SentenceTransformerEmbeddings(model_name)

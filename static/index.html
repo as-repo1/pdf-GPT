@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pdf-GPT</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>pdf-GPT</h2>
+                <p>Chat with your PDFs</p>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Settings</h3>
+                <div class="form-group">
+                    <label for="provider-select">Provider</label>
+                    <select id="provider-select">
+                        <option value="openai">OpenAI</option>
+                        <option value="gemini">Google Gemini</option>
+                        <option value="ollama">Ollama (Local)</option>
+                        <option value="openrouter">OpenRouter</option>
+                    </select>
+                </div>
+
+                <!-- Provider specific fields -->
+                <div id="openai-settings" class="provider-settings active">
+                    <div class="form-group">
+                        <label for="openai-key">OpenAI API Key</label>
+                        <input type="password" id="openai-key" placeholder="sk-...">
+                    </div>
+                    <div class="form-group">
+                        <label for="openai-model">Model</label>
+                        <select id="openai-model"></select>
+                    </div>
+                </div>
+
+                <div id="gemini-settings" class="provider-settings">
+                    <div class="form-group">
+                        <label for="gemini-key">Gemini API Key</label>
+                        <input type="password" id="gemini-key" placeholder="AIza...">
+                    </div>
+                    <div class="form-group">
+                        <label for="gemini-model">Model</label>
+                        <select id="gemini-model">
+                            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                            <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="ollama-settings" class="provider-settings">
+                    <div class="form-group">
+                        <label for="ollama-url">Base URL</label>
+                        <input type="text" id="ollama-url" placeholder="http://localhost:11434">
+                    </div>
+                    <div class="form-group">
+                        <label for="ollama-model">Model</label>
+                        <select id="ollama-model"></select>
+                    </div>
+                </div>
+
+                <div id="openrouter-settings" class="provider-settings">
+                    <div class="form-group">
+                        <label for="openrouter-key">OpenRouter API Key</label>
+                        <input type="password" id="openrouter-key" placeholder="sk-or-v1-...">
+                    </div>
+                    <div class="form-group">
+                        <label for="openrouter-model">Model</label>
+                        <select id="openrouter-model"></select>
+                    </div>
+                </div>
+
+                <button id="save-config-btn" class="btn primary-btn">Save Settings</button>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Documents</h3>
+                <div class="upload-area" id="upload-area">
+                    <input type="file" id="file-input" multiple accept=".pdf" style="display: none;">
+                    <p>Drag & Drop PDFs or <span>Click to Browse</span></p>
+                </div>
+                <div id="upload-status"></div>
+                <button id="clear-mem-btn" class="btn outline-btn">Clear Memory</button>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-container">
+            <header class="chat-header">
+                <h3>Conversation</h3>
+                <button id="clear-chat-btn" class="btn outline-btn small-btn">Clear Chat</button>
+            </header>
+            
+            <div class="messages" id="chat-messages">
+                <div class="message system">
+                    <div class="message-content">Welcome to pdf-GPT! Upload a PDF to get started.</div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <form id="chat-form">
+                    <input type="text" id="chat-input" placeholder="Ask a question about your documents..." autocomplete="off">
+                    <button type="submit" id="send-btn" class="btn primary-btn" disabled>Send</button>
+                </form>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

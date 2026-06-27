@@ -4,44 +4,38 @@
 #   docker compose up                        # pdf-GPT only (use external Ollama / cloud APIs)
 #   docker compose --profile ollama up       # pdf-GPT + bundled Ollama
 #
-# Then open: http://localhost:8501
+# Then open: http://localhost:1212
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
 
-  # ── pdf-GPT app ─────────────────────────────────────────────────────────────
-  pdf-gpt:
+  # ── pdf-GPT API Backend ─────────────────────────────────────────────────────
+  pdf-gpt-api:
     build:
       context: .
       dockerfile: Dockerfile
       target: runtime
     image: pdf-gpt:latest
-    container_name: pdf-gpt
+    container_name: pdf-gpt-api
+    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "1212"]
     ports:
-      - "8501:8501"
+      - "1212:1212"
     volumes:
-      # Persist settings (API keys, model choices) across container restarts
       - pdf-gpt-config:/root
     environment:
-      # Optional: pre-seed keys via env vars (overridden by in-app settings)
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
-      # Point Ollama to the bundled service when using --profile ollama
       - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
-    depends_on:
-      ollama:
-        condition: service_healthy
-        required: false          # app starts even without Ollama profile
     networks:
       - pdf-gpt-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c",
-             "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      test: ["CMD", "curl", "-f", "http://localhost:1212/api/config"]
       interval: 30s
       timeout: 10s
       start_period: 20s
       retries: 3
+
 
   # ── Ollama (local LLM) — opt-in via --profile ollama ────────────────────────
   ollama:
@@ -61,14 +55,6 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 5
-    # Uncomment to enable GPU support (requires nvidia-container-toolkit)
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
 
 # ── Named volumes ──────────────────────────────────────────────────────────────
 volumes:
